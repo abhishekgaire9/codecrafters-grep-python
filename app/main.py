@@ -1,81 +1,81 @@
-import collections
-import string
 import sys
-import typing
 # import pyparsing - available if you need it!
 # import lark - available if you need it!
-NUMBERS = string.digits
-ALPHANUMERIC = string.ascii_letters + NUMBERS + "_"
-def tokenize_regex(pattern: str) -> typing.List[str]:
-    tokens = []
-    i = 0
-    if pattern[0] == "^":  # Start of Anchor
-        tokens.append(pattern)
-        i += len(pattern)
-    if pattern[-1] == "$":  # End of Anchor
-        tokens.append(pattern)
-        i += len(pattern)
-    while i < len(pattern):
-        if pattern[i] == "\\":
-            tokens.append(pattern[i : i + 2])
-            i += 2
-        elif pattern[i] == "[":
-            end_index = i + 1
-            while pattern[end_index] != "]":
-                end_index += 1
-            tokens.append(pattern[i : end_index + 1])
-            i = end_index + 1
-        else:
-            tokens.append(pattern[i])
-            i += 1
-    return tokens
-def match_pattern(input_line: str, pattern_list: typing.List[str]) -> bool:
-    if len(input_line) == 0 and len(pattern_list) == 0:
+def matcher(input_line, pattern):
+    ptr1 = 0
+    ptr2 = 0
+    if input_line == "" and pattern == "":
         return True
-    if len(pattern_list) == 0:
-        return True
-    if not input_line:
+    elif input_line == "":
         return False
-    if pattern_list[0][0] == "^":
-        return input_line.startswith(pattern_list[0][1:])
-    if pattern_list[0][-1] == "$":
-        return input_line.endswith(pattern_list[0][:-1])
-    if pattern_list[0] == input_line[0]:
-        return match_pattern(input_line[1:], pattern_list[1:])
-    elif pattern_list[0] == "\\d":
-        for i in range(len(input_line)):
-            if input_line[i].isdigit():
-                return match_pattern(input_line[i + 1 :], pattern_list[1:])
-        else:
-            return False
-    elif pattern_list[0] == "\\w":
-        for i in range(len(input_line)):
-            if input_line[i].isalnum():
-                return match_pattern(input_line[i + 1 :], pattern_list[1:])
-        else:
-            return False
-    elif pattern_list[0][0] == "[" and pattern_list[0][-1] == "]":
-        if pattern_list[0][1] == "^":
-            for i in range(len(input_line)):
-                if input_line[i] not in pattern_list[0][2:-1]:
-                    return match_pattern(input_line[i + 1 :], pattern_list[1:])
+    elif pattern == "":
+        return True
+    while ptr1 < len(input_line):
+        if ptr2 + 1 < len(pattern) and pattern[ptr2 : ptr2 + 2] == "\\d":
+            if input_line[ptr1].isdigit():
+                return matcher(input_line[ptr1 + 1 :], pattern[ptr2 + 2 :])
             else:
-                return False
-        else:
-            for i in range(len(input_line)):
-                if input_line[i] in pattern_list[0][1:-1]:
-                    return match_pattern(input_line[i + 1 :], pattern_list[1:])
+                ptr1 = ptr1 + 1
+        elif ptr2 + 1 < len(pattern) and pattern[ptr2 : ptr2 + 2] == "\\w":
+            if input_line[ptr1].isalnum():
+                return matcher(input_line[ptr1 + 1 :], pattern[ptr2 + 2 :])
             else:
+                ptr1 = ptr1 + 1
+        elif input_line[ptr1] == pattern[ptr2]:
+            print("here")
+            if ptr2 + 1 < len(pattern) and pattern[ptr2 + 1] == "+":
+                while (
+                    ptr1 + 1 < len(input_line)
+                    and input_line[ptr1 + 1] == input_line[ptr1]
+                ):
+                    ptr1 = ptr1 + 1
+                ptr2 = ptr2 + 1
+            return matcher(input_line[ptr1 + 1 :], pattern[ptr2 + 1 :])
+        else:
+            ptr1 = ptr1 + 1
+    return False
+def match_pattern(input_line, pattern):
+    if len(pattern) == 1:
+        return pattern in input_line
+    elif pattern == "\\d":
+        for i in range(10):
+            if input_line.find(str(i)) != -1:
+                return True
+    elif pattern == "\\w":
+        return input_line.isalnum()
+    elif pattern[0:2] == "[^":
+        pat = pattern[2:-1]
+        for ch in pat:
+            if input_line.find(ch) != -1:
                 return False
-    return match_pattern(input_line[1:], pattern_list)
+        return True
+    elif pattern[0] == "[" and pattern[-1] == "]":
+        pat = pattern[1:-1]
+        for ch in pat:
+            if input_line.find(ch) != -1:
+                return True
+        return False
+    elif pattern[0] == "^":
+        if input_line.startswith(pattern[1:]):
+            return True
+        return False
+    elif pattern[-1] == "$":
+        l = len(pattern[:-1])
+        if input_line[-l:] == pattern[:-1]:
+            return True
+        return False
+    else:
+        return matcher(input_line, pattern)
 def main():
     pattern = sys.argv[2]
     input_line = sys.stdin.read()
     if sys.argv[1] != "-E":
         print("Expected first argument to be '-E'")
         exit(1)
-    pattern_list = tokenize_regex(pattern)
-    if match_pattern(input_line, pattern_list):
+    # You can use print statements as follows for debugging, they'll be visible when running tests.
+    print("Logs from your program will appear here!")
+    # Uncomment this block to pass the first stage
+    if match_pattern(input_line, pattern):
         exit(0)
     else:
         exit(1)
