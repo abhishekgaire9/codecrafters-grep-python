@@ -30,26 +30,60 @@ def match_pattern(input_line, pattern):
     if len(pattern) == 1:
         return pattern in input_line
     elif pattern == "\\d":
-        for i in range(10):
-            if input_line.find(str(i)) != -1:
-                return True
+        return any(char.isdigit() for char in input_line)
     elif pattern == "\\w":
-        return input_line.isalnum()
+        return any(char.isalnum() for char in input_line)
     elif pattern[0:2] == "[^":
         pat = pattern[2:-1]
-        for ch in pat:
-            if input_line.find(ch) != -1:
-                return False
-        return True
+        return all(char not in input_line for char in pat)
     elif pattern[0] == "[" and pattern[-1] == "]":
         pat = pattern[1:-1]
-        for ch in pat:
-            if input_line.find(ch) != -1:
-                return True
-        return False
+        return any(char in input_line for char in pat)
     else:
-        raise RuntimeError(f"Unhandled pattern: {pattern}")
         return matcher(input_line, pattern)
+
+def matcher(input_line, pattern):
+    if not input_line and not pattern:
+        return True
+    if not pattern:
+        return True
+    if not input_line:
+        return False
+
+    if len(pattern) >= 2 and pattern[:2] in ["\\d", "\\w"]:
+        if pattern[:2] == "\\d" and input_line[0].isdigit():
+            return matcher(input_line[1:], pattern[2:])
+        elif pattern[:2] == "\\w" and input_line[0].isalnum():
+            return matcher(input_line[1:], pattern[2:])
+        return matcher(input_line[1:], pattern)
+    elif input_line[0] == pattern[0]:
+        return matcher(input_line[1:], pattern[1:])
+    else:
+        return matcher(input_line[1:], pattern)
+# def match_pattern(input_line, pattern):
+#     if len(pattern) == 1:
+#         return pattern in input_line
+#     elif pattern == "\\d":
+#         for i in range(10):
+#             if input_line.find(str(i)) != -1:
+#                 return True
+#     elif pattern == "\\w":
+#         return input_line.isalnum()
+#     elif pattern[0:2] == "[^":
+#         pat = pattern[2:-1]
+#         for ch in pat:
+#             if input_line.find(ch) != -1:
+#                 return False
+#         return True
+#     elif pattern[0] == "[" and pattern[-1] == "]":
+#         pat = pattern[1:-1]
+#         for ch in pat:
+#             if input_line.find(ch) != -1:
+#                 return True
+#         return False
+#     else:
+#         raise RuntimeError(f"Unhandled pattern: {pattern}")
+#         return matcher(input_line, pattern)
 def main():
     pattern = sys.argv[2]
     input_line = sys.stdin.read()
